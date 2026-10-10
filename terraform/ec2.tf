@@ -23,7 +23,7 @@ data "aws_ami" "amazon_linux_2" {
 # Par de claves SSH para acceder a la instancia (crea una en consola antes)
 resource "aws_key_pair" "main" {
   key_name   = "${var.project_name}-ssh-key"
-  public_key = file("C:/Users/Josel/.ssh/id_rsa.pub") # Asumiendo que ya tienes una clave
+  public_key = file("C:/Users/Josel/.ssh/id_rsa.pub")
 }
 
 # Security Group para EC2 (solo permite SSH y puerto 8080 desde sg-nginx)
