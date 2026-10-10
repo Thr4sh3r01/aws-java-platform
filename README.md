@@ -84,13 +84,13 @@ You will also need an AWS account with the appropriate IAM permissions for the r
 
 ### Deployment
 
-Infrastructure is provisioned with Terraform. The deployment workflow:
+Infrastructure is provisioned with Terraform and the application is deployed and running.
 
 1. ✅ AWS credential configuration and permission validation.
 2. ✅ Terraform initialization and configuration validation.
 3. ✅ Infrastructure planning and provisioning (VPC, subnets, security groups, RDS, EC2).
-4. 🟡 Java application packaging and deployment.
-5. ⚪ CI/CD pipeline automation with GitHub Actions.
+4. ✅ Java application packaging and deployment on Tomcat.
+5. 🟡 CI/CD pipeline automation with GitHub Actions.
 6. ⚪ Infrastructure cleanup to prevent unnecessary AWS charges.
 
 ---
@@ -119,14 +119,14 @@ The deployment guide will also include infrastructure cleanup instructions to av
 
 ## 🧪 Project Status
 
-**Current focus:** Application deployment and CI/CD automation.
+**Current focus:** CI/CD automation and documentation.
 
 | Component                   | Status                |
 | --------------------------- | --------------------- |
 | Project structure           | ✅ Completed          |
 | Terraform infrastructure    | ✅ Completed          |
-| Java application deployment | 🟡 In progress        |
-| CI/CD automation            | ⚪ Pending            |
+| Java application deployment | ✅ Completed          |
+| CI/CD automation            | 🟡 In progress        |
 | Architecture documentation  | 🟡 In progress        |
 | Cost estimation             | ✅ Completed          |
 
