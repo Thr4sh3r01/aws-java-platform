@@ -3,15 +3,15 @@
 # ============================================
 
 # ============================================
-# AMI más reciente de Amazon Linux 2
+# AMI más reciente de Amazon Linux 2023
 # ============================================
-data "aws_ami" "amazon_linux_2" {
+data "aws_ami" "amazon_linux_2023" {
   most_recent = true
   owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+    values = ["al2023-ami-2023*-x86_64"]
   }
 
   filter {
@@ -20,10 +20,34 @@ data "aws_ami" "amazon_linux_2" {
   }
 }
 
-# Par de claves SSH para acceder a la instancia (crea una en consola antes)
-resource "aws_key_pair" "main" {
-  key_name   = "${var.project_name}-ssh-key"
-  public_key = file("C:/Users/Josel/.ssh/id_rsa.pub")
+# ============================================
+# IAM Role para Session Manager (SSM)
+# ============================================
+resource "aws_iam_role" "ssm" {
+  name = "${var.project_name}-ssm-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm" {
+  role       = aws_iam_role.ssm.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "ssm" {
+  name = "${var.project_name}-ssm-profile"
+  role = aws_iam_role.ssm.name
 }
 
 # Security Group para EC2 (solo permite SSH y puerto 8080 desde sg-nginx)
@@ -31,15 +55,6 @@ resource "aws_security_group" "ec2" {
   name        = "${var.project_name}-sg-ec2"
   description = "Security Group para EC2 Tomcat - solo desde Nginx y SSH"
   vpc_id      = aws_vpc.main.id
-
-  # SSH desde anywhere (0.0.0.0/0) - necesario para administración
-  ingress {
-    description = "SSH desde Internet"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 
   # Puerto 8080 (Tomcat) solo desde Nginx
   ingress {
@@ -76,25 +91,23 @@ resource "aws_security_group" "ec2" {
 
 # Instancia EC2
 resource "aws_instance" "tomcat" {
-  ami                    = data.aws_ami.amazon_linux_2.id # O usa una AMI propia
+  ami                    = data.aws_ami.amazon_linux_2023.id # O usa una AMI propia
   instance_type          = var.ec2_instance_type
-  key_name               = aws_key_pair.main.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   subnet_id              = aws_subnet.public[0].id # Subred pública
+  iam_instance_profile   = aws_iam_instance_profile.ssm.name
 
   # User data: instala Tomcat y despliega la app
   user_data = <<-EOF
               #!/bin/bash
-              yum update -y
-              yum install -y java-1.8.0-openjdk
+              dnf update -y
+              dnf install -y java-17-amazon-corretto-headless
               cd /opt
-              wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.63/apache-tomcat-9.0.63.tar.gz
-              tar -xzf apache-tomcat-9.0.63.tar.gz
-              mv apache-tomcat-9.0.63 tomcat
+              wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.122/apache-tomcat-9.0.122.tar.gz
+              tar -xzf apache-tomcat-9.0.122.tar.gz
+              mv apache-tomcat-9.0.122 tomcat
               mkdir -p /opt/tomcat/webapps/ROOT
-              # Copia el WAR desde la compilación local (o descárgalo después)
-              # cp /ruta/a/dptweb-1.0.war /opt/tomcat/webapps/ROOT/
-              echo "<!DOCTYPE html><html><body><h1>App Java Deployed</h1></body></html>" > /opt/tomcat/webapps/ROOT/index.html
+              echo "<!DOCTYPE html><html><body><h1>App Java - Amazon Linux 2023</h1></body></html>" > /opt/tomcat/webapps/ROOT/index.html
               nohup /opt/tomcat/bin/startup.sh &
               EOF
 
